@@ -1,0 +1,1185 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Завантаження тексту - МнемоШІ</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: #333;
+        }
+        
+        /* Навігація */
+        nav {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 15px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        
+        .logo {
+            color: white;
+            font-size: 24px;
+            font-weight: bold;
+            text-decoration: none;
+        }
+        
+        .back-btn {
+            color: white;
+            text-decoration: none;
+            padding: 10px 20px;
+            border: 2px solid white;
+            border-radius: 25px;
+            transition: all 0.3s ease;
+        }
+        
+        .back-btn:hover {
+            background: white;
+            color: #667eea;
+        }
+        
+        /* Контейнер */
+        .container {
+            max-width: 800px;
+            margin: 40px auto;
+            padding: 0 20px;
+        }
+        
+        .glass-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            margin-bottom: 30px;
+        }
+        
+        .glass-card h2 {
+            text-align: center;
+            margin-bottom: 30px;
+            font-weight: bold;
+            color: #333;
+        }
+        
+        /* Вкладки */
+        .tabs {
+            display: flex;
+            gap: 0;
+            margin-bottom: 30px;
+            border-bottom: 2px solid #eee;
+        }
+        
+        .tab-btn {
+            flex: 1;
+            padding: 15px;
+            background: none;
+            border: none;
+            border-bottom: 3px solid transparent;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            color: #999;
+            transition: all 0.3s ease;
+        }
+        
+        .tab-btn.active {
+            color: #4361ee;
+            border-bottom-color: #4361ee;
+        }
+        
+        .tab-btn:hover {
+            color: #4361ee;
+        }
+        
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        /* Форма */
+        label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 10px;
+            color: #333;
+        }
+        
+        textarea, input[type="file"] {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #ddd;
+            border-radius: 10px;
+            font-family: inherit;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+        
+        textarea:focus, input[type="file"]:focus {
+            outline: none;
+            border-color: #4361ee;
+            box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.1);
+        }
+        
+        textarea {
+            resize: vertical;
+            min-height: 200px;
+        }
+        
+        .help-text {
+            font-size: 13px;
+            color: #999;
+            margin-top: 8px;
+        }
+        
+        /* Загрузка файла */
+        .upload-area {
+            border: 3px dashed #4361ee;
+            border-radius: 15px;
+            padding: 50px 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .upload-area:hover {
+            background: rgba(67, 97, 238, 0.05);
+        }
+        
+        .upload-area.drag-over {
+            background: rgba(67, 97, 238, 0.1);
+            border-color: #667eea;
+        }
+        
+        .upload-icon {
+            font-size: 48px;
+            margin-bottom: 20px;
+        }
+        
+        .upload-area h5 {
+            margin: 15px 0;
+            color: #333;
+        }
+        
+        .upload-area p {
+            color: #999;
+            margin-top: 10px;
+        }
+        
+        .file-input {
+            display: none;
+        }
+        
+        .btn {
+            padding: 12px 30px;
+            border-radius: 25px;
+            border: none;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 16px;
+            transition: all 0.3s ease;
+            width: 100%;
+            margin-top: 10px;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(45deg, #4361ee, #7209b7);
+            color: white;
+        }
+        
+        .btn-primary:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+        }
+        
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .btn-outline {
+            background: white;
+            color: #4361ee;
+            border: 2px solid #4361ee;
+            margin-top: 15px;
+        }
+        
+        .btn-outline:hover {
+            background: #f0f4ff;
+        }
+        
+        /* Прогресс */
+        .progress-container {
+            display: none;
+            margin-top: 20px;
+        }
+        
+        .progress-container.show {
+            display: block;
+        }
+        
+        .progress-bar-container {
+            background: #eee;
+            height: 10px;
+            border-radius: 5px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+        
+        .progress-bar {
+            background: linear-gradient(90deg, #4361ee, #7209b7);
+            height: 100%;
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+        
+        .progress-info {
+            display: flex;
+            justify-content: space-between;
+            font-size: 14px;
+            color: #999;
+        }
+        
+        /* Файл информация */
+        .file-info {
+            display: none;
+            background: #e8f1ff;
+            border-left: 4px solid #4361ee;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        
+        .file-info.show {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .file-name {
+            color: #333;
+            font-weight: 600;
+        }
+        
+        .btn-clear {
+            background: none;
+            border: none;
+            color: #999;
+            cursor: pointer;
+            font-size: 18px;
+            padding: 0;
+        }
+        
+        .btn-clear:hover {
+            color: #d32f2f;
+        }
+        
+        /* Советы */
+        .tips {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        }
+        
+        .tips h5 {
+            font-weight: bold;
+            margin-bottom: 20px;
+            color: #333;
+        }
+        
+        .tips ul {
+            list-style: none;
+        }
+        
+        .tips li {
+            padding: 10px 0;
+            color: #666;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .tips li:before {
+            content: "✓";
+            color: #4CAF50;
+            font-weight: bold;
+            font-size: 18px;
+        }
+        
+        /* Модал */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .modal.show {
+            display: flex;
+        }
+        
+        .modal-dialog {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            max-width: 600px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+        }
+        
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .modal-header h3 {
+            margin: 0;
+            color: #333;
+        }
+        
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 28px;
+            cursor: pointer;
+            color: #999;
+        }
+        
+        .close-btn:hover {
+            color: #333;
+        }
+        
+        .modal-body {
+            margin-bottom: 20px;
+        }
+        
+        .success-icon {
+            font-size: 48px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin: 20px 0;
+        }
+        
+        .stat-card {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+        }
+        
+        .stat-card h6 {
+            color: #999;
+            margin-bottom: 10px;
+            font-size: 12px;
+        }
+        
+        .stat-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #4361ee;
+        }
+        
+        .modal-footer {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+        }
+        
+        .modal-footer .btn {
+            margin: 0;
+            width: auto;
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                margin: 20px auto;
+            }
+            
+            .glass-card {
+                padding: 20px;
+            }
+            
+            .tabs {
+                flex-direction: column;
+            }
+            
+            .tab-btn {
+                border-bottom: none;
+                border-right: 3px solid transparent;
+                text-align: left;
+            }
+            
+            .tab-btn.active {
+                border-right-color: #4361ee;
+                border-bottom: none;
+            }
+            
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Навігація -->
+    <nav>
+        <a href="/" class="logo">🧠 МнемоШІ</a>
+        <a href="/" class="back-btn">← На головну</a>
+    </nav>
+
+    <div class="container">
+        <div class="glass-card">
+            <h2>📤 Завантажте ваш текст</h2>
+            
+            <!-- Вкладки -->
+            <div class="tabs">
+                <button class="tab-btn active" onclick="switchTab(0)">📝 Вставити текст</button>
+                <button class="tab-btn" onclick="switchTab(1)">📁 Завантажити файл</button>
+            </div>
+
+            <!-- Вкладка 1: Вставка тексту -->
+            <div class="tab-content active">
+                <label for="textInput">Вставте ваш текст:</label>
+                <textarea id="textInput" placeholder="Вставте текст для запам'ятовування..."></textarea>
+                <div class="help-text">💡 Мінімум 100 символів для кращого аналізу</div>
+                
+                <button class="btn btn-primary" id="processTextBtn">✨ Генерувати мнемоніки</button>
+                
+                <div class="progress-container" id="progressContainer">
+                    <div class="progress-info">
+                        <span id="progressText">Обробка...</span>
+                        <span id="progressPercent">0%</span>
+                    </div>
+                    <div class="progress-bar-container">
+                        <div class="progress-bar" id="progressBar"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Вкладка 2: Завантаження файла -->
+            <div class="tab-content">
+                <div class="upload-area" id="dropArea">
+                    <div class="upload-icon">📄</div>
+                    <h5>Перетягніть файл сюди або</h5>
+                    <input type="file" id="fileInput" class="file-input" accept=".txt,.pdf,.docx,.md">
+                    <button class="btn btn-outline" onclick="document.getElementById('fileInput').click()">
+                        📁 Обрати файл
+                    </button>
+                    <p>Підтримуються: TXT, PDF, DOCX, MD</p>
+                </div>
+                
+                <div class="file-info" id="fileInfo">
+                    <span class="file-name" id="fileName"></span>
+                    <button class="btn-clear" onclick="clearFile()">✕</button>
+                </div>
+                
+                <button class="btn btn-primary" id="uploadFileBtn" disabled>📤 Завантажити та обробити</button>
+                
+                <div class="progress-container" id="progressContainer2">
+                    <div class="progress-info">
+                        <span id="progressText2">Обробка...</span>
+                        <span id="progressPercent2">0%</span>
+                    </div>
+                    <div class="progress-bar-container">
+                        <div class="progress-bar" id="progressBar2"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Советы -->
+        <div class="tips">
+            <h5>💡 Поради для кращих результатів:</h5>
+            <ul>
+                <li>Використовуйте структурований текст з заголовками</li>
+                <li>Виділяйте ключові терміни та поняття</li>
+                <li>Уникайте надто довгих речень</li>
+                <li>Оптимальний об'єм: 500-2000 символів</li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- Модал результатів -->
+    <div class="modal" id="resultModal">
+        <div class="modal-dialog">
+            <div class="modal-header">
+                <h3>📊 Результати аналізу</h3>
+                <button class="close-btn" onclick="closeModal()">&times;</button>
+            </div>
+            <div class="modal-body" id="modalBody">
+                <!-- Результати будуть вставлены тут -->
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-outline" onclick="closeModal()">Закрити</button>
+                <a href="#" id="viewDetailsBtn" class="btn btn-primary" style="text-decoration: none; display: inline-block; width: auto;">Деталі →</a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Переключение вкладок
+        function switchTab(index) {
+            const tabs = document.querySelectorAll('.tab-content');
+            const buttons = document.querySelectorAll('.tab-btn');
+            
+            tabs.forEach(tab => tab.classList.remove('active'));
+            buttons.forEach(btn => btn.classList.remove('active'));
+            
+            tabs[index].classList.add('active');
+            buttons[index].classList.add('active');
+        }
+        
+        // Обработка текста
+        document.getElementById('processTextBtn').addEventListener('click', async function() {
+            const text = document.getElementById('textInput').value.trim();
+            
+            if (text.length < 100) {
+                alert('Будь ласка, введіть текст (мінімум 100 символів)');
+                return;
+            }
+            
+            showProgress();
+            
+            try {
+                const response = await fetch('/api/process_text', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({text: text})
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    showResults(data);
+                } else {
+                    alert('Помилка: ' + data.error);
+                    hideProgress();
+                }
+            } catch (error) {
+                alert('Помилка: ' + error.message);
+                hideProgress();
+            }
+        });
+        
+        // Файловая загрузка
+        document.getElementById('fileInput').addEventListener('change', function(e) {
+            if (e.target.files.length > 0) {
+                const file = e.target.files[0];
+                document.getElementById('fileName').textContent = 
+                    `📎 ${file.name} (${(file.size / 1024).toFixed(1)} KB)`;
+                document.getElementById('fileInfo').classList.add('show');
+                document.getElementById('uploadFileBtn').disabled = false;
+            }
+        });
+        
+        document.getElementById('uploadFileBtn').addEventListener('click', async function() {
+            const fileInput = document.getElementById('fileInput');
+            
+            if (!fileInput.files.length) {
+                alert('Будь ласка, оберіть файл');
+                return;
+            }
+            
+            const formData = new FormData();
+            formData.append('file', fileInput.files[0]);
+            
+            showProgress(2);
+            
+            try {
+                const response = await fetch('/api/upload_file', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    showResults(data);
+                } else {
+                    alert('Помилка: ' + data.error);
+                    hideProgress(2);
+                }
+            } catch (error) {
+                alert('Помилка: ' + error.message);
+                hideProgress(2);
+            }
+        });
+        
+        // Drag and drop
+        const dropArea = document.getElementById('dropArea');
+        
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            dropArea.addEventListener(eventName, preventDefaults, false);
+        });
+        
+        function preventDefaults(e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+        
+        ['dragenter', 'dragover'].forEach(eventName => {
+            dropArea.addEventListener(eventName, () => {
+                dropArea.classList.add('drag-over');
+            }, false);
+        });
+        
+        ['dragleave', 'drop'].forEach(eventName => {
+            dropArea.addEventListener(eventName, () => {
+                dropArea.classList.remove('drag-over');
+            }, false);
+        });
+        
+        dropArea.addEventListener('drop', function(e) {
+            const files = e.dataTransfer.files;
+            if (files.length) {
+                document.getElementById('fileInput').files = files;
+                const file = files[0];
+                document.getElementById('fileName').textContent = 
+                    `📎 ${file.name} (${(file.size / 1024).toFixed(1)} KB)`;
+                document.getElementById('fileInfo').classList.add('show');
+                document.getElementById('uploadFileBtn').disabled = false;
+            }
+        }, false);
+        
+        function clearFile() {
+            document.getElementById('fileInput').value = '';
+            document.getElementById('fileInfo').classList.remove('show');
+            document.getElementById('uploadFileBtn').disabled = true;
+        }
+        
+        // Прогресс
+        function showProgress(which = 1) {
+            if (which === 1) {
+                document.getElementById('progressContainer').classList.add('show');
+            } else {
+                document.getElementById('progressContainer2').classList.add('show');
+            }
+            
+            let progress = 30;
+            const interval = setInterval(() => {
+                progress += Math.random() * 10;
+                if (progress > 90) {
+                    progress = 90;
+                    clearInterval(interval);
+                }
+                if (which === 1) {
+                    document.getElementById('progressBar').style.width = progress + '%';
+                    document.getElementById('progressPercent').textContent = Math.floor(progress) + '%';
+                } else {
+                    document.getElementById('progressBar2').style.width = progress + '%';
+                    document.getElementById('progressPercent2').textContent = Math.floor(progress) + '%';
+                }
+            }, 500);
+        }
+        
+        function hideProgress(which = 1) {
+            if (which === 1) {
+                document.getElementById('progressContainer').classList.remove('show');
+            } else {
+                document.getElementById('progressContainer2').classList.remove('show');
+            }
+        }
+        
+        // Показ результатов
+        function showResults(data) {
+            hideProgress();
+            
+            const sessionId = data.session_id;
+            const processed = data.data.processed_data;
+            const mnemonics = data.data.mnemonics;
+            
+            const modalBody = document.getElementById('modalBody');
+            modalBody.innerHTML = `
+                <div class="success-icon">✅</div>
+                <h4 style="text-align: center; margin-bottom: 20px; color: #333;">Аналіз завершено!</h4>
+                
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <h6>Ключові слова</h6>
+                        <div class="stat-value">${processed.key_words.length}</div>
+                    </div>
+                    <div class="stat-card">
+                        <h6>Речень</h6>
+                        <div class="stat-value">${processed.sentences_count}</div>
+                    </div>
+                    <div class="stat-card">
+                        <h6>Слів</h6>
+                        <div class="stat-value">${processed.words_count}</div>
+                    </div>
+                    <div class="stat-card">
+                        <h6>Рівень складності</h6>
+                        <div class="stat-value" style="font-size: 14px;">${processed.complexity.level}</div>
+                    </div>
+                </div>
+                
+                <div style="background: #f0f4ff; padding: 15px; border-radius: 10px; margin: 20px 0;">
+                    <h6 style="color: #4361ee; margin-bottom: 10px;">📊 Згенеровано:</h6>
+                    <ul style="list-style: none; color: #666; font-size: 14px;">
+                        <li>✓ Акроніми: ${mnemonics.acronyms.length}</li>
+                        <li>✓ Історій: ${mnemonics.stories.length}</li>
+                        <li>✓ Рим: ${mnemonics.rhymes.length}</li>
+                        <li>✓ Асоціацій: ${mnemonics.visuals.length}</li>
+                    </ul>
+                </div>
+            `;
+            
+            document.getElementById('viewDetailsBtn').href = `/result/${sessionId}`;
+            document.getElementById('resultModal').classList.add('show');
+        }
+        
+        function closeModal() {
+            document.getElementById('resultModal').classList.remove('show');
+        }
+        
+        // Закрытие модала при клике вне его
+        document.getElementById('resultModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeModal();
+            }
+        });
+    </script>
+</body>
+</html>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        
+        .upload-container {
+            max-width: 800px;
+            margin: 100px auto;
+        }
+        
+        .glass-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            padding: 40px;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(45deg, #4361ee, #7209b7);
+            border: none;
+            padding: 12px 30px;
+            border-radius: 50px;
+            font-weight: 600;
+        }
+        
+        .upload-area {
+            border: 3px dashed #4361ee;
+            border-radius: 15px;
+            padding: 40px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .upload-area:hover {
+            background: rgba(67, 97, 238, 0.1);
+        }
+        
+        .upload-area i {
+            font-size: 48px;
+            color: #4361ee;
+            margin-bottom: 20px;
+        }
+        
+        .progress {
+            height: 10px;
+            border-radius: 5px;
+        }
+        
+        .file-list {
+            max-height: 200px;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-dark">
+        <div class="container">
+            <a class="navbar-brand fw-bold" href="/">
+                <i class="fas fa-brain me-2"></i>МнемоШІ
+            </a>
+            <a href="/" class="btn btn-outline-light">
+                <i class="fas fa-arrow-left me-2"></i>На головну
+            </a>
+        </div>
+    </nav>
+
+    <div class="upload-container">
+        <div class="glass-card">
+            <h2 class="text-center mb-4 fw-bold">
+                <i class="fas fa-cloud-upload-alt me-2"></i>Завантажте ваш текст
+            </h2>
+            
+            <!-- Вибір методу -->
+            <div class="mb-4">
+                <div class="nav nav-pills nav-fill mb-3" id="pills-tab" role="tablist">
+                    <button class="nav-link active" id="pills-text-tab" data-bs-toggle="pill" data-bs-target="#pills-text" type="button">
+                        <i class="fas fa-font me-2"></i>Вставити текст
+                    </button>
+                    <button class="nav-link" id="pills-file-tab" data-bs-toggle="pill" data-bs-target="#pills-file" type="button">
+                        <i class="fas fa-file-upload me-2"></i>Завантажити файл
+                    </button>
+                </div>
+            </div>
+
+            <!-- Контент вкладок -->
+            <div class="tab-content" id="pills-tabContent">
+                <!-- Вкладка тексту -->
+                <div class="tab-pane fade show active" id="pills-text">
+                    <div class="mb-3">
+                        <label for="textInput" class="form-label fw-bold">Вставте ваш текст:</label>
+                        <textarea class="form-control" id="textInput" rows="10" placeholder="Вставте текст для запам'ятовування..."></textarea>
+                        <div class="form-text">Мінімум 100 символів для кращого аналізу</div>
+                    </div>
+                    
+                    <div class="d-grid">
+                        <button id="processTextBtn" class="btn btn-primary btn-lg">
+                            <i class="fas fa-magic me-2"></i>Генерувати мнемоніки
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Вкладка файлів -->
+                <div class="tab-pane fade" id="pills-file">
+                    <div class="upload-area" id="dropArea">
+                        <i class="fas fa-file-alt"></i>
+                        <h5>Перетягніть файл сюди або</h5>
+                        <input type="file" id="fileInput" class="d-none" accept=".txt,.pdf,.docx,.md">
+                        <label for="fileInput" class="btn btn-outline-primary mt-3">
+                            <i class="fas fa-folder-open me-2"></i>Обрати файл
+                        </label>
+                        <p class="text-muted mt-3">Підтримуються: TXT, PDF, DOCX, MD</p>
+                    </div>
+                    
+                    <div id="fileInfo" class="mt-3 d-none">
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle me-2"></i>
+                            <span id="fileName"></span>
+                            <button class="btn btn-sm btn-outline-danger float-end" onclick="clearFile()">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="d-grid mt-3">
+                        <button id="uploadFileBtn" class="btn btn-primary btn-lg" disabled>
+                            <i class="fas fa-upload me-2"></i>Завантажити та обробити
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Прогрес -->
+            <div id="progressContainer" class="mt-4 d-none">
+                <div class="d-flex justify-content-between mb-2">
+                    <span id="progressText">Обробка...</span>
+                    <span id="progressPercent">0%</span>
+                </div>
+                <div class="progress">
+                    <div id="progressBar" class="progress-bar progress-bar-striped progress-bar-animated" 
+                         style="width: 0%"></div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Поради -->
+        <div class="glass-card mt-4">
+            <h5 class="fw-bold">
+                <i class="fas fa-lightbulb me-2 text-warning"></i>Поради для кращих результатів:
+            </h5>
+            <ul class="list-unstyled">
+                <li><i class="fas fa-check text-success me-2"></i>Використовуйте структурований текст з заголовками</li>
+                <li><i class="fas fa-check text-success me-2"></i>Виділяйте ключові терміни та поняття</li>
+                <li><i class="fas fa-check text-success me-2"></i>Уникайте надто довгих речень</li>
+                <li><i class="fas fa-check text-success me-2"></i>Оптимальний об'єм: 500-2000 символів</li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- Модальне вікно результатів -->
+    <div class="modal fade" id="resultModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="fas fa-brain text-primary me-2"></i>Результати аналізу
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body text-center" id="modalBody">
+                    <!-- Тут будуть результати -->
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Закрити</button>
+                    <a href="#" id="viewDetailsBtn" class="btn btn-primary">
+                        <i class="fas fa-external-link-alt me-2"></i>Детальний результат
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        let currentSessionId = null;
+        
+        // Обробка тексту
+        document.getElementById('processTextBtn').addEventListener('click', async function() {
+            const text = document.getElementById('textInput').value.trim();
+            
+            if (text.length < 100) {
+                alert('Будь ласка, введіть текст (мінімум 100 символів)');
+                return;
+            }
+            
+            showProgress();
+            
+            try {
+                const response = await fetch('/api/process_text', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ text: text })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    currentSessionId = data.session_id;
+                    showResults(data.data);
+                } else {
+                    alert('Помилка: ' + data.error);
+                    hideProgress();
+                }
+                
+            } catch (error) {
+                alert('Помилка під час обробки: ' + error.message);
+                hideProgress();
+            }
+        });
+        
+        // Обробка файлів
+        document.getElementById('fileInput').addEventListener('change', function(e) {
+            if (e.target.files.length > 0) {
+                const file = e.target.files[0];
+                document.getElementById('fileName').textContent = 
+                    `Файл: ${file.name} (${(file.size / 1024).toFixed(1)} KB)`;
+                document.getElementById('fileInfo').classList.remove('d-none');
+                document.getElementById('uploadFileBtn').disabled = false;
+            }
+        });
+        
+        document.getElementById('uploadFileBtn').addEventListener('click', async function() {
+            const fileInput = document.getElementById('fileInput');
+            
+            if (!fileInput.files.length) {
+                alert('Будь ласка, оберіть файл');
+                return;
+            }
+            
+            const formData = new FormData();
+            formData.append('file', fileInput.files[0]);
+            
+            showProgress();
+            
+            try {
+                const response = await fetch('/api/upload_file', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    currentSessionId = data.session_id;
+                    showResults(data.data);
+                } else {
+                    alert('Помилка: ' + data.error);
+                    hideProgress();
+                }
+                
+            } catch (error) {
+                alert('Помилка під час завантаження: ' + error.message);
+                hideProgress();
+            }
+        });
+        
+        // Drag and drop
+        const dropArea = document.getElementById('dropArea');
+        
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            dropArea.addEventListener(eventName, preventDefaults, false);
+        });
+        
+        function preventDefaults(e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+        
+        ['dragenter', 'dragover'].forEach(eventName => {
+            dropArea.addEventListener(eventName, highlight, false);
+        });
+        
+        ['dragleave', 'drop'].forEach(eventName => {
+            dropArea.addEventListener(eventName, unhighlight, false);
+        });
+        
+        function highlight() {
+            dropArea.style.background = 'rgba(67, 97, 238, 0.1)';
+            dropArea.style.borderColor = '#4361ee';
+        }
+        
+        function unhighlight() {
+            dropArea.style.background = '';
+            dropArea.style.borderColor = '#4361ee';
+        }
+        
+        dropArea.addEventListener('drop', handleDrop, false);
+        
+        function handleDrop(e) {
+            const dt = e.dataTransfer;
+            const files = dt.files;
+            
+            if (files.length) {
+                document.getElementById('fileInput').files = files;
+                
+                const file = files[0];
+                document.getElementById('fileName').textContent = 
+                    `Файл: ${file.name} (${(file.size / 1024).toFixed(1)} KB)`;
+                document.getElementById('fileInfo').classList.remove('d-none');
+                document.getElementById('uploadFileBtn').disabled = false;
+            }
+        }
+        
+        function clearFile() {
+            document.getElementById('fileInput').value = '';
+            document.getElementById('fileInfo').classList.add('d-none');
+            document.getElementById('uploadFileBtn').disabled = true;
+        }
+        
+        // Прогрес бар
+        function showProgress() {
+            const container = document.getElementById('progressContainer');
+            const bar = document.getElementById('progressBar');
+            const percent = document.getElementById('progressPercent');
+            
+            container.classList.remove('d-none');
+            bar.style.width = '30%';
+            percent.textContent = '30%';
+            
+            // Імітація прогресу
+            let progress = 30;
+            const interval = setInterval(() => {
+                progress += Math.random() * 10;
+                if (progress > 90) {
+                    progress = 90;
+                    clearInterval(interval);
+                }
+                bar.style.width = progress + '%';
+                percent.textContent = Math.floor(progress) + '%';
+            }, 500);
+        }
+        
+        function hideProgress() {
+            document.getElementById('progressContainer').classList.add('d-none');
+            document.getElementById('progressBar').style.width = '0%';
+            document.getElementById('progressPercent').textContent = '0%';
+        }
+        
+        // Показ результатів
+        function showResults(data) {
+            hideProgress();
+            
+            const modalBody = document.getElementById('modalBody');
+            const viewDetailsBtn = document.getElementById('viewDetailsBtn');
+            
+            modalBody.innerHTML = `
+                <div class="text-center mb-4">
+                    <div class="display-1 text-success">
+                        <i class="fas fa-check-circle"></i>
+                    </div>
+                    <h3 class="mt-3">Аналіз завершено!</h3>
+                </div>
+                
+                <div class="row text-start">
+                    <div class="col-md-6 mb-3">
+                        <div class="card border-0 bg-light">
+                            <div class="card-body">
+                                <h6><i class="fas fa-chart-bar text-primary me-2"></i>Статистика:</h6>
+                                <ul class="list-unstyled">
+                                    <li>Ключових слів: ${data.processed_data.key_words.length}</li>
+                                    <li>Речень: ${data.processed_data.sentences_count}</li>
+                                    <li>Слов: ${data.processed_data.words_count}</li>
+                                    <li>Рівень: ${data.processed_data.complexity.level}</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-6 mb-3">
+                        <div class="card border-0 bg-light">
+                            <div class="card-body">
+                                <h6><i class="fas fa-magic text-primary me-2"></i>Згенеровано:</h6>
+                                <ul class="list-unstyled">
+                                    <li>Акроніми: ${data.mnemonics.acronyms.length}</li>
+                                    <li>Історій: ${data.mnemonics.stories.length}</li>
+                                    <li>Рим: ${data.mnemonics.rhymes.length}</li>
+                                    <li>Асоціацій: ${data.mnemonics.visuals.length}</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="alert alert-info mt-3">
+                    <i class="fas fa-lightbulb me-2"></i>
+                    <strong>Порада:</strong> ${data.summary.slice(0, 100)}...
+                </div>
+            `;
+            
+            viewDetailsBtn.href = `/result/${currentSessionId}`;
+            
+            const modal = new bootstrap.Modal(document.getElementById('resultModal'));
+            modal.show();
+        }
+    </script>
+</body>
+</html>
