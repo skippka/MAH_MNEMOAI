@@ -1,5 +1,6 @@
 """
 Мнемонічний тренер з ШІ - Flask веб-додаток
+
 """
 
 from flask import Flask, render_template, request, jsonify, send_file
