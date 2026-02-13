@@ -6,20 +6,6 @@ import re
 import string
 from collections import Counter
 from typing import List, Dict, Any
-import nltk
-from nltk.corpus import stopwords
-from nltk.tokenize import word_tokenize, sent_tokenize
-
-# Завантажуємо ресурси NLTK
-try:
-    nltk.data.find('tokenizers/punkt_tab')
-except LookupError:
-    nltk.download('punkt_tab', quiet=True)
-
-try:
-    nltk.data.find('corpora/stopwords')
-except LookupError:
-    nltk.download('stopwords', quiet=True)
 
 class TextProcessor:
     def __init__(self):
@@ -47,9 +33,9 @@ class TextProcessor:
         # Очищаємо текст
         cleaned_text = self._clean_text(text)
         
-        # Токенізація
-        sentences = sent_tokenize(cleaned_text, language='ukrainian')
-        words = word_tokenize(cleaned_text.lower(), language='ukrainian')
+        # Токенізація без NLTK
+        sentences = self._split_sentences(cleaned_text)
+        words = self._tokenize_words(cleaned_text.lower())
         
         # Видаляємо стоп-слова
         filtered_words = [
@@ -82,33 +68,37 @@ class TextProcessor:
             'readability': self._calculate_readability(cleaned_text)
         }
     
+    def _split_sentences(self, text: str) -> List[str]:
+        """Розбиття тексту на речення без NLTK"""
+        sentences = re.split(r'[.!?]+', text)
+        return [s.strip() for s in sentences if len(s.strip()) > 5]
+    
+    def _tokenize_words(self, text: str) -> List[str]:
+        """Токенізація слів без NLTK"""
+        words = re.findall(r'\b\w+\b', text)
+        return words
+    
     def _clean_text(self, text: str) -> str:
-        """Очищення тексту"""
-        # Видаляємо спеціальні символи, але зберігаємо українські літери
+
         text = re.sub(r'[^\w\sА-Яа-яЄєІіЇїҐґ.,!?-]', ' ', text)
         
-        # Замінюємо кілька пробілів на один
         text = re.sub(r'\s+', ' ', text)
         
-        # Видаляємо цифри в середині слів
         text = re.sub(r'\b\w*\d\w*\b', '', text)
         
         return text.strip()
     
     def _extract_keywords(self, words: List[str]) -> List[Dict]:
         """Виділення ключових слів"""
-        # Підрахунок частоти
         word_freq = Counter(words)
         
-        # Обчислюємо TF (Term Frequency)
         total_words = len(words)
         keywords = []
         
         for word, count in word_freq.most_common(20):
-            if count > 1:  # Слова, що зустрічаються більше одного разу
+            if count > 1:
                 tf = count / total_words
                 
-                # Простий спосіб визначення частини мови
                 pos = self._guess_pos(word)
                 score = tf * self.word_scores.get(pos, 1.0)
                 
@@ -143,42 +133,60 @@ class TextProcessor:
     
     def _extract_key_phrases(self, sentences: List[str]) -> List[str]:
         """Виділення ключових фраз"""
-        phrases = []
+        phrases: List[str] = []
         
         for sentence in sentences:
-            # Знаходимо фрази з 2-4 слів
-            words = word_tokenize(sentence.lower(), language='ukrainian')
+            # Беремо тільки буквенні, змістовні слова
+            words = self._tokenize_words(sentence.lower())
             words = [w for w in words if w.isalpha() and len(w) > 2]
             
-            # Генеруємо n-грами
+            # Формуємо фрази довжиною 2‑4 слова (класичні «ключові словосполучення»)
             for n in range(2, 5):
                 for i in range(len(words) - n + 1):
-                    phrase = ' '.join(words[i:i+n])
-                    if len(phrase.split()) == n:
-                        phrases.append(phrase)
+                    phrase_words = words[i:i+n]
+                    phrase = ' '.join(phrase_words)
+                    phrases.append(phrase)
         
-        # Рахуємо частоти фраз
+        if not phrases:
+            return []
+        
         phrase_freq = Counter(phrases)
         
-        # Повертаємо найпопулярніші фрази
-        return [phrase for phrase, count in phrase_freq.most_common(10) if count > 1]
+        # Раніше брали тільки фрази, які зустрічаються >1 раз, тому для багатьох текстів
+        # список ключових фраз був порожній. Тепер беремо і одноразові, але
+        # віддаємо перевагу більш довгим та частим фразам.
+        ranked = sorted(
+            phrase_freq.items(),
+            key=lambda item: (item[1], len(item[0].split())),
+            reverse=True,
+        )
+        
+        unique_phrases: List[str] = []
+        seen = set()
+        for phrase, _ in ranked:
+            # Уникаємо майже однакових фраз (наприклад, з зайвим словом на кінці)
+            base = phrase
+            if base in seen:
+                continue
+            seen.add(base)
+            unique_phrases.append(phrase)
+            if len(unique_phrases) >= 15:
+                break
+        
+        return unique_phrases
     
     def _identify_topics(self, sentences: List[str], keywords: List[Dict]) -> List[str]:
-        """Визначення основних тем"""
+
         topics = []
         
-        # Беремо топ-5 ключових слів
         top_keywords = [kw['word'] for kw in keywords[:5]]
         
-        # Шукаємо речення, де зустрічаються ключові слова
         for keyword in top_keywords:
             for sentence in sentences:
                 if keyword in sentence.lower():
-                    # Знаходимо найближчі слова до ключового слова
                     words = sentence.split()
                     for i, word in enumerate(words):
                         if keyword in word.lower():
-                            # Формуємо тему з контексту
                             start = max(0, i - 2)
                             end = min(len(words), i + 3)
                             topic = ' '.join(words[start:end])
@@ -186,12 +194,11 @@ class TextProcessor:
                             break
                     break
         
-        return list(set(topics))[:5]  # Унікальні теми
-    
+        return list(set(topics))[:5] 
     def _analyze_complexity(self, text: str) -> Dict[str, Any]:
         """Аналіз складності тексту"""
-        sentences = sent_tokenize(text, language='ukrainian')
-        words = word_tokenize(text.lower(), language='ukrainian')
+        sentences = self._split_sentences(text)
+        words = self._tokenize_words(text.lower())
         
         avg_sentence_length = len(words) / len(sentences) if sentences else 0
         avg_word_length = sum(len(w) for w in words) / len(words) if words else 0
@@ -208,8 +215,8 @@ class TextProcessor:
     
     def _calculate_readability(self, text: str) -> float:
         """Розрахунок читабельності (спрощена формула)"""
-        sentences = sent_tokenize(text, language='ukrainian')
-        words = word_tokenize(text, language='ukrainian')
+        sentences = self._split_sentences(text)
+        words = self._tokenize_words(text)
         
         if not sentences or not words:
             return 0
