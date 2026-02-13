@@ -1,6 +1,5 @@
 """
 Мнемонічний тренер з ШІ - Flask веб-додаток
-
 """
 
 from flask import Flask, render_template, request, jsonify, send_file
@@ -16,6 +15,7 @@ from utils import TextProcessor
 import json
 import uuid
 from datetime import datetime
+from gemini_client import get_gemini_client
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'your-secret-key-here'
@@ -33,6 +33,35 @@ generator = MnemonicGenerator()
 # Ініціалізуємо обробник тексту
 text_processor = TextProcessor()
 
+
+@app.route('/api/gemini_help', methods=['POST'])
+def gemini_help():
+    """API для покращення/редагування тексту за допомогою Google Gemini"""
+    try:
+        data = request.json or {}
+        text = data.get('text', '') or ''
+        language = data.get('language', 'uk')
+
+        if not text or len(text.strip()) < 10:
+            return jsonify({
+                'success': False,
+                'error': 'Текст занадто короткий для покращення. Мінімум 10 символів.'
+            }), 400
+
+        client = get_gemini_client()
+        improved_text = client.improve_text(text, language=language)
+
+        return jsonify({
+            'success': True,
+            'improved_text': improved_text
+        })
+
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': f'Помилка Gemini: {str(e)}'
+        }), 500
+
 @app.route('/')
 def index():
     """Головна сторінка"""
@@ -49,6 +78,7 @@ def process_text():
     try:
         data = request.json
         text = data.get('text', '')
+        mode = data.get('mode', 'normal')
         
         if not text or len(text.strip()) < 10:
             return jsonify({
@@ -56,14 +86,103 @@ def process_text():
                 'error': 'Текст занадто короткий. Мінімум 10 символів.'
             })
         
-        # Обробляємо текст
-        processed_data = text_processor.process(text)
+        ai_full = None
+        if mode == 'deep':
+            # ГЛИБОКЕ МИСЛЕННЯ: усе робить нейромережа
+            try:
+                client = get_gemini_client()
+                ai_full = client.generate_full_mnemonics(text)
+                
+                # Відладочна інформація (можна видалити після тестування)
+                tips_from_gemini = ai_full.get('tips', [])
+                if not tips_from_gemini or len(tips_from_gemini) == 0:
+                    print(f"⚠️ УВАГА: Gemini не повернула поради або повернула порожній масив. ai_full.keys() = {list(ai_full.keys())}")
+                else:
+                    print(f"✅ Gemini повернула {len(tips_from_gemini)} порад")
+                
+                # Якщо успішно отримали дані від нейромережі
+                analysis = ai_full.get('analysis', {})
+                processed_data = {
+                    'cleaned_text': text,
+                    'sentences_count': analysis.get('sentence_count', 0),
+                    'words_count': analysis.get('word_count', 0),
+                    'key_words': analysis.get('keywords', []),
+                    'key_phrases': [],
+                    'main_topics': [],
+                    'complexity': {
+                        'level': analysis.get('complexity_level', 'Невідомий')
+                    },
+                    'readability': 0,
+                }
+
+                # Усі мнемоніки – рядки від нейромережі
+                mnemonics = {
+                    'acronyms': ai_full.get('acronyms', []),
+                    'acrostics': ai_full.get('acrostics', []),
+                    'stories': ai_full.get('stories', []),
+                    'rhymes': ai_full.get('rhymes', []),
+                    'visuals': ai_full.get('visuals', []),
+                }
+
+                summary_text = "Глибоке мислення: повний аналіз та мнемоніки створені нейромережею."
+                # Беремо поради від Gemini, якщо вони є і не пусті
+                gemini_tips = ai_full.get('tips', [])
+                if not gemini_tips or (isinstance(gemini_tips, list) and len(gemini_tips) == 0):
+                    # Якщо Gemini не повернула поради - використовуємо порожній список
+                    # (не будемо підміняти локальними, щоб було видно що Gemini не дала порад)
+                    gemini_tips = []
+                
+                ai_memory = {
+                    "study_plan": ai_full.get('study_plan', ''),
+                    "tips": gemini_tips,  # Тільки поради від Gemini
+                    "mnemonics": [],
+                }
+            except RuntimeError as e:
+                # Якщо помилка квоти - fallback на локальну генерацію
+                error_msg = str(e)
+                if "квот" in error_msg.lower() or "quota" in error_msg.lower():
+                    # Переходимо на звичайний режим
+                    mode = 'normal'
+                else:
+                    # Інша помилка - прокидаємо далі
+                    raise
+            except Exception:
+                # Будь-яка інша помилка - fallback на локальну генерацію
+                mode = 'normal'
         
-        # Генеруємо мнемоніки за допомогою ШІ
-        mnemonics = generator.generate_mnemonics(
-            processed_data['key_phrases'],
-            processed_data['main_topics']
-        )
+        if mode != 'deep' or ai_full is None:
+            # ЗВИЧАЙНЕ МИСЛЕННЯ: локальна модель (або fallback з глибокого)
+            # ЗВИЧАЙНЕ МИСЛЕННЯ: локальна модель
+            processed_data = text_processor.process(text)
+
+            mnemonics = generator.generate_mnemonics(
+                processed_data['key_phrases'],
+                processed_data['main_topics']
+            )
+
+            # План/поради локально
+            try:
+                plan = generator.create_comprehensive_plan(text, processed_data.get('key_phrases', []))
+                study_lines = []
+                for phase in plan.get('phases', []):
+                    name = phase.get('name', 'Фаза')
+                    dur = phase.get('duration', '-')
+                    study_lines.append(f"{name} ({dur})")
+                    for a in phase.get('actions', []):
+                        study_lines.append(f" - {a}")
+                ai_memory = {
+                    "study_plan": "\n".join(study_lines) if study_lines else "План не вдалося згенерувати.",
+                    "tips": plan.get('memory_tips', generator.get_memory_tips()),
+                    "mnemonics": []
+                }
+            except Exception:
+                ai_memory = {
+                    "study_plan": "План не вдалося згенерувати.",
+                    "tips": generator.get_memory_tips(),
+                    "mnemonics": []
+                }
+
+            summary_text = generator.generate_summary(processed_data)
         
         # Створюємо унікальний ID для сесії
         session_id = str(uuid.uuid4())[:8]
@@ -75,7 +194,9 @@ def process_text():
             'original_text': text[:500] + '...' if len(text) > 500 else text,
             'processed_data': processed_data,
             'mnemonics': mnemonics,
-            'summary': generator.generate_summary(processed_data)
+            'summary': summary_text if mode == 'deep' else summary_text,
+            'ai_memory': ai_memory,
+            'ai_full': ai_full if mode == 'deep' else None,
         }
         
         # Зберігаємо у файл
@@ -127,11 +248,34 @@ def upload_file():
             # Обробляємо текст
             processed_data = text_processor.process(text)
             
-            # Генеруємо мнемоніки
+            # Генеруємо мнемоніки класичним генератором (локальний ШІ)
             mnemonics = generator.generate_mnemonics(
                 processed_data['key_phrases'],
                 processed_data['main_topics']
             )
+
+            # Для завантажених файлів використовуємо лише локальний план (без Gemini),
+            # щоб "глибоке мислення" було лише для тексту з форми.
+            try:
+                plan = generator.create_comprehensive_plan(text, processed_data.get('key_phrases', []))
+                study_lines = []
+                for phase in plan.get('phases', []):
+                    name = phase.get('name', 'Фаза')
+                    dur = phase.get('duration', '-')
+                    study_lines.append(f"{name} ({dur})")
+                    for a in phase.get('actions', []):
+                        study_lines.append(f" - {a}")
+                ai_memory = {
+                    "study_plan": "\n".join(study_lines) if study_lines else "План не вдалося згенерувати.",
+                    "tips": plan.get('memory_tips', generator.get_memory_tips()),
+                    "mnemonics": []
+                }
+            except Exception:
+                ai_memory = {
+                    "study_plan": "План не вдалося згенерувати.",
+                    "tips": generator.get_memory_tips(),
+                    "mnemonics": []
+                }
             
             session_id = str(uuid.uuid4())[:8]
             
@@ -141,7 +285,8 @@ def upload_file():
                 'original_text': text[:500] + '...' if len(text) > 500 else text,
                 'processed_data': processed_data,
                 'mnemonics': mnemonics,
-                'summary': generator.generate_summary(processed_data)
+                'summary': generator.generate_summary(processed_data),
+                'ai_memory': ai_memory,
             }
             
             filename = f"static/user_data/session_{session_id}.json"
@@ -163,15 +308,31 @@ def upload_file():
 @app.route('/result/<session_id>')
 def show_result(session_id):
     """Сторінка результатів"""
+    return render_template('result.html')
+
+@app.route('/api/result/<session_id>')
+def api_get_result(session_id):
+    """API для отримання результатів сесії"""
     try:
         filename = f"static/user_data/session_{session_id}.json"
         with open(filename, 'r', encoding='utf-8') as f:
             data = json.load(f)
         
-        return render_template('result.html', data=data)
+        return jsonify({
+            'success': True,
+            'data': data
+        })
         
     except FileNotFoundError:
-        return render_template('error.html', message='Сесія не знайдена')
+        return jsonify({
+            'success': False,
+            'error': 'Сесія не знайдена'
+        }), 404
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
 
 @app.route('/api/get_memory_tips')
 def get_memory_tips():
